@@ -1,0 +1,4 @@
+function inputMessage(input, output){
+    
+
+}
