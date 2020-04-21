@@ -10,7 +10,6 @@ const token = process.env['TOKEN_MESS'];
 const webhktoken = process.env['TOKEN_WEBHOOK'];
 
 
-
 app.use(bodyParser.json()); 
 
 // Post endpoint  
@@ -33,14 +32,17 @@ app.get('/', function(req, res) {
 
 // Message handler - async function to handle incoming messages 
 app.messageHandler = function(j, cb) {
+    var g = require("./game.js");
+    text=g(j); 
+    //text = "Hello";
     var data = {
-      "recipient":{
-          "id":j.entry[0].messaging[0].sender.id
-      },
-      "message":{
-          //"text":"Welcome to Poker"
-          "text":j.entry[0].messaging[0].message.text
-      }
+    "recipient":{
+        "id":j.entry[0].messaging[0].sender.id
+    },
+    "message":{
+        "text": text
+        //"text":j.entry[0].messaging[0].message.text
+    }
     };
     var reqObj = {
       url: 'https://graph.facebook.com/v2.6/me/messages',
