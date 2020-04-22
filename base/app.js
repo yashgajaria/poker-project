@@ -3,12 +3,16 @@ var express        = require('express'),
     bodyParser     = require('body-parser'),
     http           = require('http'),
     server         = require('request'),
-    app            = express();
+    playerClass    = require('./player.js'),
+    app            = express(),
+    gameClass      = require("./game.js");
 
 // get env var for tokens
 const token = process.env['TOKEN_MESS'];
 const webhktoken = process.env['TOKEN_WEBHOOK'];
 
+
+var players=[]; 
 
 app.use(bodyParser.json()); 
 
@@ -30,25 +34,52 @@ app.get('/', function(req, res) {
      }
 });
 
+//initlize game 
+
+//let game = new gameClass(); 
+
 // Message handler - async function to handle incoming messages 
 app.messageHandler = function(j, cb) {
-    var g = require("./game.js");
-    text=g(j); 
-    //text = "Hello";
-    var data = {
-    "recipient":{
-        "id":j.entry[0].messaging[0].sender.id
-    },
-    "message":{
-        "text": text
-        //"text":j.entry[0].messaging[0].message.text
+  var jsonObject; 
+    var playerId = j.entry[0].messaging[0].sender.id;
+    var exists= false; 
+    var activeUser;
+    //check if player already in game 
+    for (var i =0; i<players.length; i++){
+      if (playerId == players[i].getPlayerId()){
+        exists=true;
+        activeUser=players[i]; 
+      }
     }
-    };
+    console.log(players);
+    
+    if (exists){
+      jsonObject= activeUser.processMessage(j);
+      //process New Game/JOin GAme input (PLayer method- processMessage- check if state=WelcomED, then handle New Game (initate game and return code) /JOin Game,) 
+
+    }
+    else {
+      activeUser = new playerClass(playerId);
+      jsonObject= activeUser.generateWelcome();
+      players.push(activeUser);
+    }
+    //send input to game class 
+    //jsonObject=game.inMessage(j); 
+    //text= "\"message\":{\"text\":\"How many players want to play?\"}"
+
+    //build string for json object
+    
+    //var text = `{"recipient":{"id":"${id}"},"message":{"text":"${name}"}}`;
+    //var jsonObject = JSON.parse(text);
+    
+    
+
+
     var reqObj = {
       url: 'https://graph.facebook.com/v2.6/me/messages',
       qs: {access_token:token},
       method: 'POST',
-      json: data
+      json: jsonObject
     };
     console.log(JSON.stringify(reqObj))
     server(reqObj, function(error, response, body) {
