@@ -1,18 +1,75 @@
-const Str = require('@supercharge/strings')
+const Str = require('@supercharge/strings');
+helper        = require("./helper.js");
+var db = require('./db.js');
 
 module.exports = class Game {
     gameCode;
-    players;  
+    players;
+    pot;
+    bet;
+    minBet;     
     constructor() {
         this.gameCode = Str.random(6).toUpperCase();
-        this.players= [];  
+        this.players= []; 
+        this.pot = 0;
+        this.bet = 10;   
     }
     getGameCode(){
         return this.gameCode
     }
+    getPot(){
+        return this.pot; 
+    }
     addPlayer(playerId){
         this.players.push(playerId);
     }
+    resetPot(){
+        this.pot=0;
+    }
+    resetBet(){
+        this.bet=10;
+    }
+    initWallet(value){
+        for (var i =0; i<this.players.length; i++){
+            var playerId = this.players[i];
+            var tarPlayer= db.searchPlayers(playerId);
+            if (tarPlayer){
+                tarPlayer.setWallet(value);
+            }
+        }
+    }
+    logAll(){
+        for (var i =0; i<this.players.length; i++){
+            var playerId = this.players[i];
+            var tarPlayer= db.searchPlayers(playerId);
+            if (tarPlayer){
+                tarPlayer.contact(this.pot);
+            }
+        }
+    }
+    addPot(value){
+        this.pot=this.pot+value;
+    }
+    callBet(){
+        return this.bet;
+    }
+    addBet(value){
+        this.bet= this.bet+value;
+    }
+    askForWinner(admin){
+        console.log(this.players.length);
+        for (var i =0; i<this.players.length; i++){
+            var playerId = this.players[i];
+            var tarPlayer= db.searchPlayers(playerId);
+            if (tarPlayer){
+                var name= tarPlayer.getPlayerName();
+                var outMsg = helper.oneButton(name,name);
+                var text=`{"recipient":{"id":"${admin.getPlayerId()}"},"message":${outMsg}}`
+                helper.sender(JSON.parse(text));
+            }
+        }
+    }
+
 } //end of class 
 
 // Handle input from user 
@@ -28,19 +85,13 @@ function inMessage(inJson){
     var id = inJson.entry[0].messaging[0].sender.id
 
         if (inMsg == '"New Game"'){
-            //text = JSON.parse('"message":{"text":"How many players want to play?"}');
             outMsg = `{"text":"How many players want to play?"}`
-            //text=`{"recipient":{"id":"${id}"},"message":{"text":"How many players want to play?"}}`
             }
         else if (inMsg == '"Join Game"'){
-            //text = JSON.parse('"message":{"text":"Please enter gamepin"}');
             outMsg = `{"text":"Please enter gamepin"}`
-            //text=`{"recipient":{"id":"${id}"},"message":{"text":"${outMsg}"}}`
         }
         else {
-            //text = "Welcome to Poker, please type New Game to start new game, or Join Game to join game";
-            //outMsg = "Press New game to start a new game and Join Game to join an existing game";
-            outMsg = buttonJson("Press New game to start a new game and Join Game to join an existing game", "New Game");
+            outMsg = helper.oneButton("Press New game to start a new game and Join Game to join an existing game", "New Game");
         }
 
         text=`{"recipient":{"id":"${id}"},"message":${outMsg}}`
