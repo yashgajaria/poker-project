@@ -7,12 +7,14 @@ module.exports = class Game {
     players;
     pot;
     bet;
-    minBet;     
+    minBet;  
+    lastMove;   
     constructor() {
         this.gameCode = Str.random(6).toUpperCase();
         this.players= []; 
         this.pot = 0;
-        this.bet = 10;   
+        this.bet = 0;
+        this.lastMove= NaN;    
     }
     getGameCode(){
         return this.gameCode
@@ -27,7 +29,35 @@ module.exports = class Game {
         this.pot=0;
     }
     resetBet(){
-        this.bet=10;
+        this.bet=0;
+        for (var i =0; i<this.players.length; i++){
+            var playerId = this.players[i];
+            var tarPlayer= db.searchPlayers(playerId);
+            if (tarPlayer){
+                tarPlayer.resetMyBet();
+            }
+        }
+    }
+    setLastMove(state, name, intVal){
+        if (state=="RAISE"){
+            this.lastMove= `${name} raised by ${intVal}`
+        }
+        else if (state=="Call"){
+            this.lastMove= `${name} called with ${intVal}`
+        }
+        else if (state=="Check"){
+            this.lastMove= `${name} checked`
+        }
+        else if (state=="Next Round"){
+            this.lastMove= "New Round"
+        }
+        else if (state=="WIN"){
+            this.lastMove= `${name} won $${intVal}!`
+        }
+        
+    }
+    resetLastMove(){
+        this.lastMove=NaN;
     }
     initWallet(value){
         for (var i =0; i<this.players.length; i++){
@@ -43,7 +73,7 @@ module.exports = class Game {
             var playerId = this.players[i];
             var tarPlayer= db.searchPlayers(playerId);
             if (tarPlayer){
-                tarPlayer.contact(this.pot);
+                tarPlayer.contact(this.pot, this.lastMove);
             }
         }
     }
@@ -56,8 +86,8 @@ module.exports = class Game {
     addBet(value){
         this.bet= this.bet+value;
     }
-    askForWinner(admin){
-        console.log(this.players.length);
+    listAllUsers(admin){
+        //console.log(this.players.length);
         for (var i =0; i<this.players.length; i++){
             var playerId = this.players[i];
             var tarPlayer= db.searchPlayers(playerId);
@@ -70,59 +100,4 @@ module.exports = class Game {
         }
     }
 
-} //end of class 
-
-// Handle input from user 
-function inMessage(inJson){
-    var text, inMsg, outMsg ;
-    // try catch to see if they are replying through buttons or actually typing something 
-     try {
-        inMsg = (JSON.stringify(inJson.entry[0].messaging[0].postback.title)); // try catch if the response is a postback of it's a written message  
-     } catch (err){   
-        inMsg = (JSON.stringify(inJson.entry[0].messaging[0].message.text)); 
-    }
-
-    var id = inJson.entry[0].messaging[0].sender.id
-
-        if (inMsg == '"New Game"'){
-            outMsg = `{"text":"How many players want to play?"}`
-            }
-        else if (inMsg == '"Join Game"'){
-            outMsg = `{"text":"Please enter gamepin"}`
-        }
-        else {
-            outMsg = helper.oneButton("Press New game to start a new game and Join Game to join an existing game", "New Game");
-        }
-
-        text=`{"recipient":{"id":"${id}"},"message":${outMsg}}`
-        var jsonObject = JSON.parse(text);
-        return jsonObject; 
-    } 
-  
-
-
-// Generate JSON for buttons 
-function buttonJson(writtenText, buttonOne){
-    var writtenText, buttonOne; 
-    outMsg= `{"attachment":{ 
-        "type":"template", 
-        "payload":{  
-          "template_type":"button", 
-          "text":"${writtenText}", 
-          "buttons":[ 
-            { 
-              "type":"postback", 
-              "title":"${buttonOne}", 
-              "payload":"DEVELOPER_DEFINED_PAYLOAD" 
-            },
-            { 
-              "type":"postback", 
-              "title":"Join Game", 
-              "payload":"DEVELOPER_DEFINED_PAYLOAD" 
-            } 
-          ] 
-        } 
-      }
-    }`
-    return outMsg; 
-}
+} //

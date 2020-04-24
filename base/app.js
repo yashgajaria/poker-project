@@ -10,8 +10,6 @@ var express        = require('express'),
 // get env var for tokens
 const webhktoken = process.env['TOKEN_WEBHOOK'];
 
-//Players Array 
-//var players=[]; 
 
 app.use(bodyParser.json()); 
 
@@ -38,27 +36,19 @@ app.get('/', function(req, res) {
 app.messageHandler = function(j, cb) {
   var jsonObject; 
   var playerId = j.entry[0].messaging[0].sender.id;
-  //var exists= false; 
   var activeUser = db.searchPlayers(playerId);
+  console.log(playerId);
 
-  //check if player already in game 
-  // for (var i =0; i<players.length; i++){
-  //   if (playerId == players[i].getPlayerId()){
-  //     exists=true;
-  //     activeUser=players[i]; 
-  //   }
-  // }
-  // console.log(players);
   
   if (activeUser){
     jsonObject= activeUser.processMessage(j);
   }
   else {
     activeUser = new playerClass(playerId);
-    jsonObject= activeUser.generateWelcome();
-    //players.push(activeUser);
     db.pushPlayer(activeUser);
+    jsonObject= activeUser.generateWelcome();
   }
+  //eventually don't need this 
   helper.sender(jsonObject);
 }
 

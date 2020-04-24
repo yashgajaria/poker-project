@@ -30,10 +30,18 @@ server(reqObj, function(error, response, body) {
 
 getFirstName: function getFirstName(messengerId, playerObj){
     var reqObj = {
-        url: `https://graph.facebook.com/${messengerId}?fields=first_name,last_name,profile_pic&access_token=${token}`,
+        url: `https://graph.facebook.com/${messengerId}?fields=first_name,last_name,profile_pic&access_token=${token}`, //manualyl inserted ID in string 
         method: 'GET'
     };
+    console.log("\n\n\n\n\n\n");
+    console.log(reqObj);
+    console.log(messengerId);
+    console.log(playerObj);
+    
+    console.log("\n\n\n\n\n\n");
+
     server(reqObj, function(error, response, body) {
+      console.log(body);
         if (error) {
         console.log('Error sending message: ', JSON.stringify(error));
         //cb(false)
