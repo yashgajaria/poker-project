@@ -8,7 +8,8 @@ module.exports = class Game {
     pot;
     bet;
     minBet;  
-    lastMove;   
+    lastMove; 
+    overrideTarget;   
     constructor() {
         this.gameCode = Str.random(6).toUpperCase();
         this.players= []; 
@@ -21,6 +22,9 @@ module.exports = class Game {
     }
     getPot(){
         return this.pot; 
+    }
+    getOverideTarget(){
+        return this.overrideTarget;
     }
     addPlayer(playerId){
         this.players.push(playerId);
@@ -38,15 +42,15 @@ module.exports = class Game {
             }
         }
     }
+    setOverrideTarget(name){
+        this.overrideTarget=name; 
+    }
     setLastMove(state, name, intVal){
         if (state=="RAISE"){
             this.lastMove= `${name} raised by ${intVal}`
         }
         else if (state=="Call"){
             this.lastMove= `${name} called with ${intVal}`
-        }
-        else if (state=="Check"){
-            this.lastMove= `${name} checked`
         }
         else if (state=="Next Round"){
             this.lastMove= "New Round"
@@ -80,11 +84,11 @@ module.exports = class Game {
     addPot(value){
         this.pot=this.pot+value;
     }
-    callBet(){
+    getTableBet(){
         return this.bet;
     }
-    addBet(value){
-        this.bet= this.bet+value;
+    addTableBet(value){
+        this.bet+=value;
     }
     listAllUsers(admin){
         //console.log(this.players.length);
@@ -95,6 +99,27 @@ module.exports = class Game {
                 var name= tarPlayer.getPlayerName();
                 var outMsg = helper.oneButton(name,name);
                 var text=`{"recipient":{"id":"${admin.getPlayerId()}"},"message":${outMsg}}`
+                helper.sender(JSON.parse(text));
+            }
+        }
+    }
+
+    deletePlayers(){
+        for (var i =0; i<this.players.length; i++){
+            var playerId = this.players[i];
+            if (playerId){
+                db.deletePlayer(playerId);
+            }
+        }
+
+    }
+
+    messagePlayersEnd(){
+        for (var i =0; i<this.players.length; i++){
+            var playerId = this.players[i];
+            var tarPlayer= db.searchPlayers(playerId);
+            if (tarPlayer){
+                var text=`{"recipient":{"id":"${tarPlayer.getPlayerId()}"},"message":{"text":"GAME OVER, Admin has ended the game. Thanks for playing. Messaging the bot again will allow you to create a New Game or Join a Game."}}`
                 helper.sender(JSON.parse(text));
             }
         }

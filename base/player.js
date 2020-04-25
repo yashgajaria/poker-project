@@ -40,8 +40,8 @@ module.exports = class Player {
     setName(name){
         this.name=name;
     }
-    setMyBet(value){
-        this.myBet=this.myBet+value;
+    addMyBet(value){
+        this.myBet+=value;
     }
     resetMyBet(){
         this.myBet=0;
@@ -56,12 +56,11 @@ module.exports = class Player {
         if (this.admin){
             this.adminButton();
         } 
-        //outMsg= helper.threeButton(`${this.name} \\nYour Bet: ${this.getMyBet()} \\nTable Bet: ${currGame.callBet()} \\nPot: ${pot} \\nWallet: ${this.wallet}`, "Check", "Call", "Raise");
         if (lastMove){
             text=`{"recipient":{"id":"${this.id}"},"message":{"text":"${lastMove}"}}`;
             helper.sender(JSON.parse(text));
         } 
-        text=`{"recipient":{"id":"${this.id}"},"message":${helper.threeButton(`${this.name} \\nYour Bet: ${this.getMyBet()} \\nTable Bet: ${currGame.callBet()} \\nPot: ${pot} \\nWallet: ${this.wallet}`, "Check", "Call", "Raise")}}`
+        text=`{"recipient":{"id":"${this.id}"},"message":${helper.twoButton(`${this.name} \\nYour Bet: ${this.getMyBet()} \\nTable Bet: ${currGame.getTableBet()} \\nPot: ${pot} \\nWallet: ${this.wallet}`, "Call", "Raise")}}`
         helper.sender(JSON.parse(text));
     }
 
@@ -72,11 +71,12 @@ module.exports = class Player {
         return JSON.parse(text);
     }
     processMessage(inJson){
+        console.log(this.state);
         var inMsg;
         var currGame; 
 
         //set currGame if user is already in game- function takes in state, returns game 
-        currGame= db.searchGames(this.gameCode); //UPDATE: returns Nan if game doesnt exist, so we should always check for game 
+        currGame= db.searchGames(this.gameCode); 
         
         if (inJson.entry[0].messaging[0].postback){
             inMsg=inJson.entry[0].messaging[0].postback.title;
@@ -93,22 +93,35 @@ module.exports = class Player {
             outMsg = this.joinGame(inMsg);
         }
         else if (this.state == "HELP"){
-            outMsg = this.helpFuntion(inMsg, currGame);
+            outMsg = this.helpFunction(inMsg, currGame);
         }
         else if (this.state == "ENDING"){
-            if (inMsg=="Yes"){
-                outMsg= "Game Over, thanks for playing";
-                //DELETE EVERYTHING FOR GAME 
+            if (inMsg=="Yes- End Game"){
+                outMsg= "Thanks for playing";
+                currGame.messagePlayersEnd();
+                currGame.deletePlayers();
+                db.deleteGame(currGame.getGameCode());
             }
-            else if (inMsg == "No"){
+            else if (inMsg == "No- Return to Game"){
+                //console.log("REVERT TO GAME");
                 this.state="INGAME";
                 currGame.logAll();
+                return NaN; 
             }
         }
         else if (this.state == "OVERRIDE"){
-            console.log(`The message is ${inMsg}`);
-            //outMsg = `Please enter the new wallet value for ${inMsg}`;
-            outMsg= "OVERRIDING POSITION";
+            if (!currGame.getOverideTarget()){
+                currGame.setOverrideTarget(inMsg); 
+                outMsg= `Please enter the new wallet value for ${inMsg}`; 
+            }
+            else {
+                var overridePlayer=db.searchPlayersByName(currGame.getOverideTarget());
+                overridePlayer.setWallet(parseInt(inMsg,10));
+                currGame.logAll();
+                outMsg="New Wallet Set";
+                currGame.setOverrideTarget(NaN);
+                this.state="INGAME"; 
+            }
         }
 
         //if user is in game 
@@ -119,7 +132,7 @@ module.exports = class Player {
                     outMsg= this.stateListAll(inMsg, currGame);
                 }
                 if (inMsg == "Admin Control"){
-                    helper.sender(JSON.parse(`{"recipient":{"id":"${this.id}"},"message":${helper.threeButton("ADMIN", "Next Round", "Pick Winner", "Help")}}`));
+                    helper.sender(JSON.parse(`{"recipient":{"id":"${this.id}"},"message":${helper.threeButton("Admin", "Next Round", "Pick Winner", "Help")}}`));
                     return NaN;
                 }
             }
@@ -181,10 +194,10 @@ module.exports = class Player {
 
     stateInGameFunction(inMsg, currGame){
         if (inMsg == "START GAME"){
-            this.state= "SETWALLET";
+            this.state= "INITWALLET";
             return "How much should each player start with?";
         }
-        else if (inMsg== "Pick Winner" && this.state=="INGAME"){
+        else if (inMsg== "Pick Winner" ){ //removed && this.state=="INGAME"
             currGame.listAllUsers(this);
             this.state="LISTALL";
             return NaN; 
@@ -206,16 +219,15 @@ module.exports = class Player {
             return "How much do you want to raise it by?";
         }
         else if (inMsg == "Call"){
-            var intVal=currGame.callBet()-this.getMyBet(); 
-            currGame.setLastMove(inMsg, this.name, intVal);
-            currGame.addPot(intVal);
-            this.wallet= this.wallet-intVal;
+            var difference=currGame.getTableBet()-this.getMyBet(); 
+            this.addMyBet(difference); 
+            currGame.addPot(difference);
+            this.wallet= this.wallet-difference;
+            currGame.setLastMove(inMsg, this.name, difference);
             currGame.logAll();
             return NaN;
         }
-        else if (inMsg == "Check"){
-            currGame.setLastMove(inMsg, this.name, 0);
-            currGame.logAll();
+        else{
             return NaN; 
         }
     }
@@ -231,10 +243,13 @@ module.exports = class Player {
             currGame.logAll();
             return NaN;
         }
+        else{
+            return NaN; 
+        }
     }
 
     processInt(intVal, currGame){
-        if (this.state=="SETWALLET"){
+        if (this.state=="INITWALLET"){
             currGame.initWallet(intVal);
             currGame.logAll();
             this.state="INGAME";
@@ -242,17 +257,24 @@ module.exports = class Player {
         }
         else if(this.state=="RAISE"){
             currGame.setLastMove(this.state, this.name, intVal);
-            this.setMyBet(intVal); 
-            currGame.addBet(intVal); 
-            currGame.addPot(currGame.callBet());
-            this.wallet= this.wallet-currGame.callBet();
+            var difference=currGame.getTableBet()-this.getMyBet(); //how off is current user from bet 
+            this.addMyBet(difference+intVal); 
+            currGame.addPot(difference+intVal);
+            currGame.addTableBet(intVal);
+            this.wallet= this.wallet-difference-intVal;
             currGame.logAll();
+
+            // this.addMyBet(currGame.getTableBet()+intVal);  
+             
+            // currGame.addPot(currGame.getTableBet());
+            // this.wallet= this.wallet-currGame.getTableBet();
+            // currGame.logAll();
             this.state="INGAME";
             return NaN;  
         }
     }
 
-    helpFuntion(inMsg, currGame){
+    helpFunction(inMsg, currGame){
         currGame.resetLastMove();
         if (inMsg== "End Game"){
             helper.sender(JSON.parse(`{"recipient":{"id":"${this.id}"},"message":${helper.twoButton("Are you sure you want to end game? You will not be able to return to this game.", "Yes- End Game", "No- Return to Game")}}`));
@@ -262,16 +284,16 @@ module.exports = class Player {
             helper.sender(JSON.parse(`{"recipient":{"id":"${this.id}"},"message":${helper.oneButton("<INSERT HELP COMMANDS>", "Return to Game")}}`));
         }
         else if (inMsg == "Override"){
-            this.state == "OVERRIDE";
+            this.state = "OVERRIDE";
             currGame.listAllUsers(this);
-            return "Which user do you want to override wallet for?";
+            return "Which users' wallet do you want to override?";
         }
         else if (inMsg == "Return to Game"){
             currGame.logAll();
             this.state="INGAME";
         }
-        else{
-            return NaN; 
+        else {
+            return NaN;
         }
     }
     
