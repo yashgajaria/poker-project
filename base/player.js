@@ -85,6 +85,12 @@ module.exports = class Player {
             inMsg=inJson.entry[0].messaging[0].message.text;
         }
 
+        if (inMsg.toUpperCase()=="LEAVE"){
+            helper.sender(JSON.parse(`{"recipient":{"id":"${this.getPlayerId()}"},"message":{"text":"Thanks for playing, you have been removed from the game. Message the bot again to start/join another game"}}`));
+            db.deletePlayer(this.id);
+            return NaN; 
+        }
+
         //Call fxn based on state
         if (this.state =="WELCOMED"){ 
             outMsg= this.welcomeUser(inMsg);
@@ -119,6 +125,7 @@ module.exports = class Player {
                 overridePlayer.setWallet(parseInt(inMsg,10));
                 currGame.logAll();
                 outMsg="New Wallet Set";
+                helper.sender(JSON.parse(`{"recipient":{"id":"${overridePlayer.getPlayerId()}"},"message":{"text":"Admin has overrode your wallet to ${inMsg}"}}`));
                 currGame.setOverrideTarget(NaN);
                 this.state="INGAME"; 
             }
@@ -165,12 +172,13 @@ module.exports = class Player {
     welcomeUser(inMsg){
         if (inMsg == "New Game"){
             var currGame = new gameClass();
+            currGame.setAdminId(this.id);
             this.setGameCode(currGame.getGameCode());
             db.pushGames(currGame);  
             this.state= "INGAME";
             currGame.addPlayer(this.id);
             this.admin=true; 
-            var text=`{"recipient":{"id":"${this.id}"},"message":${helper.oneButton(this.gameCode, "START GAME")}}`
+            var text=`{"recipient":{"id":"${this.id}"},"message":${helper.oneButton(`Game Pin: ${this.gameCode}`, "Start Game")}}`
             helper.sender(JSON.parse(text));
             return NaN;
             }
@@ -184,7 +192,8 @@ module.exports = class Player {
         if (currGame){
             this.state= "INGAME";
             this.gameCode= inMsg;
-            currGame.addPlayer(this.id); 
+            currGame.addPlayer(this.id);
+            currGame.messageAdmin(`${this.name} has joined the game.`); 
             return "You're in this game now"; 
         }
         else {
@@ -193,7 +202,7 @@ module.exports = class Player {
     }
 
     stateInGameFunction(inMsg, currGame){
-        if (inMsg == "START GAME"){
+        if (inMsg == "Start Game"){
             this.state= "INITWALLET";
             return "How much should each player start with?";
         }
@@ -219,12 +228,19 @@ module.exports = class Player {
             return "How much do you want to raise it by?";
         }
         else if (inMsg == "Call"){
-            var difference=currGame.getTableBet()-this.getMyBet(); 
-            this.addMyBet(difference); 
-            currGame.addPot(difference);
-            this.wallet= this.wallet-difference;
-            currGame.setLastMove(inMsg, this.name, difference);
+           // var difference=currGame.getTableBet()-this.getMyBet(); 
+            this.state="Call";
+            var difference = this.raiseBet(0, currGame);
+            // if (this.wallet<=difference){
+            //     difference=this.wallet;
+            //     inMsg="ALLIN";
+            // }
+            // this.addMyBet(difference); 
+            // currGame.addPot(difference);
+            // this.wallet= this.wallet-difference;
+            //currGame.setLastMove(inMsg, this.name, difference);
             currGame.logAll();
+            this.state="INGAME";
             return NaN;
         }
         else{
@@ -256,19 +272,19 @@ module.exports = class Player {
             return "Initialized";
         }
         else if(this.state=="RAISE"){
-            currGame.setLastMove(this.state, this.name, intVal);
-            var difference=currGame.getTableBet()-this.getMyBet(); //how off is current user from bet 
-            this.addMyBet(difference+intVal); 
-            currGame.addPot(difference+intVal);
-            currGame.addTableBet(intVal);
-            this.wallet= this.wallet-difference-intVal;
+            //var difference=currGame.getTableBet()-this.getMyBet(); //how off is current user from bet 
+            this.raiseBet(intVal, currGame);
+            // if ((difference+intVal)>=this.wallet){
+            //     difference=0;
+            //     intVal=this.wallet;
+            //     this.state="ALLIN";
+            // }
+            // this.addMyBet(difference+intVal); 
+            // currGame.addPot(difference+intVal);
+            // currGame.addTableBet(intVal);
+            // this.wallet= this.wallet-difference-intVal;
+            //currGame.setLastMove(this.state, this.name, intVal);
             currGame.logAll();
-
-            // this.addMyBet(currGame.getTableBet()+intVal);  
-             
-            // currGame.addPot(currGame.getTableBet());
-            // this.wallet= this.wallet-currGame.getTableBet();
-            // currGame.logAll();
             this.state="INGAME";
             return NaN;  
         }
@@ -295,6 +311,33 @@ module.exports = class Player {
         else {
             return NaN;
         }
+    }
+    raiseBet(intVal, currGame){
+        var difference=currGame.getTableBet()-this.getMyBet();
+        if ((difference+intVal)>=this.wallet){
+            this.allIn(currGame);
+            currGame.setLastMove("ALLIN", this.name, difference);
+            return difference; 
+            // currGame.setTableBet(currGame.getTableBet()-difference);
+            // difference=0;
+            // intVal=this.wallet;
+            // this.state="ALLIN";
+            //currGame.setTableBet(currGame.getTableBet()-intVal);
+        }
+        this.addMyBet(difference+intVal); 
+        currGame.addPot(difference+intVal);
+        currGame.addTableBet(intVal);
+        this.wallet= this.wallet-difference-intVal;
+        currGame.setLastMove(this.state, this.name, difference); //previously intVal 
+        return difference; 
+
+    }
+    allIn(currGame){
+        this.state="ALLIN";
+        this.addMyBet(this.wallet);
+        currGame.addPot(this.wallet);
+        currGame.setTableBet(Math.max(currGame.getTableBet(), this.getMyBet()));
+        this.wallet=0;
     }
     
 }

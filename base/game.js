@@ -9,13 +9,15 @@ module.exports = class Game {
     bet;
     minBet;  
     lastMove; 
-    overrideTarget;   
+    overrideTarget;
+    adminId;    
     constructor() {
         this.gameCode = Str.random(6).toUpperCase();
         this.players= []; 
         this.pot = 0;
         this.bet = 0;
-        this.lastMove= NaN;    
+        this.lastMove= NaN;
+        this.adminId="";    
     }
     getGameCode(){
         return this.gameCode
@@ -28,6 +30,12 @@ module.exports = class Game {
     }
     addPlayer(playerId){
         this.players.push(playerId);
+    }
+    setTableBet(intVal){
+        this.bet=intVal;
+    }
+    setAdminId(adminId){
+        this.adminId=adminId;
     }
     resetPot(){
         this.pot=0;
@@ -49,7 +57,7 @@ module.exports = class Game {
         if (state=="RAISE"){
             this.lastMove= `${name} raised by ${intVal}`
         }
-        else if (state=="Call"){
+        else if (state=="Call" && intVal>0){
             this.lastMove= `${name} called with ${intVal}`
         }
         else if (state=="Next Round"){
@@ -58,6 +66,16 @@ module.exports = class Game {
         else if (state=="WIN"){
             this.lastMove= `${name} won $${intVal}!`
         }
+        else if (state=="ALLIN" && intVal>0){
+            this.lastMove= `${name} went ALL IN!`
+        }
+        // else if (state=="Call" && intVal<=0){
+        //     this.lastMove= `${name} went ALL IN!`
+        // }
+        else if (intVal==0){
+            this.lastMove= `${name} checked`
+        }
+
         
     }
     resetLastMove(){
@@ -114,6 +132,14 @@ module.exports = class Game {
 
     }
 
+    deletePlayerById(playerId){
+        for (var i =0; i<this.players.length; i++){
+            if (playerId == this.players[i]){
+                players.splice(i, 1); 
+            }  
+          }
+    }
+
     messagePlayersEnd(){
         for (var i =0; i<this.players.length; i++){
             var playerId = this.players[i];
@@ -123,6 +149,11 @@ module.exports = class Game {
                 helper.sender(JSON.parse(text));
             }
         }
+    }
+
+    messageAdmin(message){
+        var text=`{"recipient":{"id":"${this.adminId}"},"message":{"text":"${message}"}}`
+        helper.sender(JSON.parse(text));
     }
 
 } //
