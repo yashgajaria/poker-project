@@ -53,12 +53,12 @@ module.exports = class Game {
     setOverrideTarget(name){
         this.overrideTarget=name; 
     }
-    setLastMove(state, name, intVal){
+    setLastMove(state, name, intVal, difference){
         if (state=="RAISE"){
             this.lastMove= `${name} raised by ${intVal}`
         }
-        else if (state=="Call" && intVal>0){
-            this.lastMove= `${name} called with ${intVal}`
+        else if (state=="Call" && difference>0){
+            this.lastMove= `${name} called with ${difference}`
         }
         else if (state=="Next Round"){
             this.lastMove= "New Round"
@@ -66,7 +66,7 @@ module.exports = class Game {
         else if (state=="WIN"){
             this.lastMove= `${name} won $${intVal}!`
         }
-        else if (state=="ALLIN" && intVal>0){
+        else if (state=="ALLIN" && (intVal>0 || difference>0)){
             this.lastMove= `${name} went ALL IN!`
         }
         // else if (state=="Call" && intVal<=0){
@@ -131,11 +131,10 @@ module.exports = class Game {
         }
 
     }
-
     deletePlayerById(playerId){
         for (var i =0; i<this.players.length; i++){
             if (playerId == this.players[i]){
-                players.splice(i, 1); 
+                this.players.splice(i, 1); 
             }  
           }
     }

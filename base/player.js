@@ -85,8 +85,12 @@ module.exports = class Player {
             inMsg=inJson.entry[0].messaging[0].message.text;
         }
 
-        if (inMsg.toUpperCase()=="LEAVE"){
+        if (inMsg.toUpperCase()=="LEAVE" && !this.admin){
             helper.sender(JSON.parse(`{"recipient":{"id":"${this.getPlayerId()}"},"message":{"text":"Thanks for playing, you have been removed from the game. Message the bot again to start/join another game"}}`));
+            if (currGame){
+                currGame.messageAdmin(`${this.name} has left the game :(`);
+                currGame.deletePlayerById(this.id);
+            }
             db.deletePlayer(this.id);
             return NaN; 
         }
@@ -98,10 +102,10 @@ module.exports = class Player {
         else if (this.state == "WAITINGPIN"){
             outMsg = this.joinGame(inMsg);
         }
-        else if (this.state == "HELP"){
+        else if (this.state == "HELP" && this.admin){
             outMsg = this.helpFunction(inMsg, currGame);
         }
-        else if (this.state == "ENDING"){
+        else if (this.state == "ENDING" && this.admin){
             if (inMsg=="Yes- End Game"){
                 outMsg= "Thanks for playing";
                 currGame.messagePlayersEnd();
@@ -115,7 +119,7 @@ module.exports = class Player {
                 return NaN; 
             }
         }
-        else if (this.state == "OVERRIDE"){
+        else if (this.state == "OVERRIDE" && this.admin){
             if (!currGame.getOverideTarget()){
                 currGame.setOverrideTarget(inMsg); 
                 outMsg= `Please enter the new wallet value for ${inMsg}`; 
@@ -138,7 +142,7 @@ module.exports = class Player {
                 if (!outMsg){
                     outMsg= this.stateListAll(inMsg, currGame);
                 }
-                if (inMsg == "Admin Control"){
+                if (inMsg == "Admin Control" && this.admin){
                     helper.sender(JSON.parse(`{"recipient":{"id":"${this.id}"},"message":${helper.threeButton("Admin", "Next Round", "Pick Winner", "Help")}}`));
                     return NaN;
                 }
@@ -202,23 +206,23 @@ module.exports = class Player {
     }
 
     stateInGameFunction(inMsg, currGame){
-        if (inMsg == "Start Game"){
+        if (inMsg == "Start Game" && this.admin){
             this.state= "INITWALLET";
             return "How much should each player start with?";
         }
-        else if (inMsg== "Pick Winner" ){ //removed && this.state=="INGAME"
+        else if (inMsg== "Pick Winner" && this.admin ){ //removed && this.state=="INGAME"
             currGame.listAllUsers(this);
             this.state="LISTALL";
             return NaN; 
         }
-        else if (inMsg== "Next Round" ){ //removed && this.state=="INGAME"
+        else if (inMsg== "Next Round" && this.admin ){ //removed && this.state=="INGAME"
             currGame.resetBet();
-            currGame.setLastMove(inMsg, this.name, 0);
+            currGame.setLastMove(inMsg, this.name, 0,0);
             currGame.logAll();
             return NaN;
             //return "NEW HAND";
         }
-        else if (inMsg == "Help"){
+        else if (inMsg == "Help" && this.admin){
             this.state="HELP";
             helper.sender(JSON.parse(`{"recipient":{"id":"${this.id}"},"message":${helper.threeButton("Chose a Command", "End Game", "Menu", "Override")}}`));
             return NaN;
@@ -228,17 +232,8 @@ module.exports = class Player {
             return "How much do you want to raise it by?";
         }
         else if (inMsg == "Call"){
-           // var difference=currGame.getTableBet()-this.getMyBet(); 
             this.state="Call";
-            var difference = this.raiseBet(0, currGame);
-            // if (this.wallet<=difference){
-            //     difference=this.wallet;
-            //     inMsg="ALLIN";
-            // }
-            // this.addMyBet(difference); 
-            // currGame.addPot(difference);
-            // this.wallet= this.wallet-difference;
-            //currGame.setLastMove(inMsg, this.name, difference);
+            this.raiseBet(0, currGame);
             currGame.logAll();
             this.state="INGAME";
             return NaN;
@@ -253,7 +248,7 @@ module.exports = class Player {
             var newWallet = currGame.getPot() + winner.wallet;
             winner.setWallet(newWallet);
             this.state="INGAME";
-            currGame.setLastMove("WIN", winner.getPlayerName(), currGame.getPot());
+            currGame.setLastMove("WIN", winner.getPlayerName(), currGame.getPot(),0);
             currGame.resetPot();
             currGame.resetBet();
             currGame.logAll();
@@ -272,18 +267,7 @@ module.exports = class Player {
             return "Initialized";
         }
         else if(this.state=="RAISE"){
-            //var difference=currGame.getTableBet()-this.getMyBet(); //how off is current user from bet 
             this.raiseBet(intVal, currGame);
-            // if ((difference+intVal)>=this.wallet){
-            //     difference=0;
-            //     intVal=this.wallet;
-            //     this.state="ALLIN";
-            // }
-            // this.addMyBet(difference+intVal); 
-            // currGame.addPot(difference+intVal);
-            // currGame.addTableBet(intVal);
-            // this.wallet= this.wallet-difference-intVal;
-            //currGame.setLastMove(this.state, this.name, intVal);
             currGame.logAll();
             this.state="INGAME";
             return NaN;  
@@ -316,19 +300,14 @@ module.exports = class Player {
         var difference=currGame.getTableBet()-this.getMyBet();
         if ((difference+intVal)>=this.wallet){
             this.allIn(currGame);
-            currGame.setLastMove("ALLIN", this.name, difference);
+            currGame.setLastMove("ALLIN", this.name, intVal, difference);
             return difference; 
-            // currGame.setTableBet(currGame.getTableBet()-difference);
-            // difference=0;
-            // intVal=this.wallet;
-            // this.state="ALLIN";
-            //currGame.setTableBet(currGame.getTableBet()-intVal);
         }
         this.addMyBet(difference+intVal); 
         currGame.addPot(difference+intVal);
         currGame.addTableBet(intVal);
         this.wallet= this.wallet-difference-intVal;
-        currGame.setLastMove(this.state, this.name, difference); //previously intVal 
+        currGame.setLastMove(this.state, this.name, intVal, difference);
         return difference; 
 
     }
