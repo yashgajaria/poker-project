@@ -18,12 +18,9 @@ console.log(JSON.stringify(reqObj));
 server(reqObj, function(error, response, body) {
     if (error) {
     console.log('Error sending message: ', JSON.stringify(error));
-    //cb(false)
     } else if (response.body.error) {
     console.log("API Error: " + JSON.stringify(response.body.error));
-    //cb(false)
     } else{
-    //cb(true)
     console.log(true)
     }
 })},
@@ -33,21 +30,13 @@ getFirstName: function getFirstName(messengerId, playerObj){
         url: `https://graph.facebook.com/${messengerId}?fields=first_name,last_name,profile_pic&access_token=${token}`, //manualyl inserted ID in string 
         method: 'GET'
     };
-    console.log("\n\n\n\n\n\n");
-    console.log(reqObj);
-    console.log(messengerId);
-    console.log(playerObj);
-    
-    console.log("\n\n\n\n\n\n");
-
+ 
     server(reqObj, function(error, response, body) {
       console.log(body);
         if (error) {
         console.log('Error sending message: ', JSON.stringify(error));
-        //cb(false)
         } else if (response.body.error) {
         console.log("API Error: " + JSON.stringify(response.body.error));
-        //cb(false)
         } else{
             name=JSON.parse(body).first_name;
             playerObj.setName(name);
