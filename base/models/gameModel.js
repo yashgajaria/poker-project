@@ -108,6 +108,8 @@ class gameClass {
                 this.players.splice(i, 1); 
             }  
           }
+        var options = { multi: true};
+        Game.update(this.getQuery(), {players: this.players}, options).then( ()=> {});
     }
 
     messageAdmin(message){
