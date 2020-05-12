@@ -4,9 +4,12 @@ Have you ever wanted to play poker but couldn't because you didn't have any chip
 Poker Faciliator bot is perfect for you! This easy to use messenger bot will totally replace the need for chips, as it can track
 everything related to chips as long as each player has messenger. 
 
+## Screenshots:
+![Slide1](https://user-images.githubusercontent.com/43117838/81712479-9febbb00-9442-11ea-999f-6abe5d2c6c21.JPG)
+
 ## How to Play:
 ### Set-up Game: 
-* ALl players should message the bot on Facebook/Messenger with any message 
+* All players should message the bot on Facebook/Messenger with any message 
 * One player should create the game (they will become the admin) and notify the other players of the Game Code
 * Non-admin players can press "Join Game" and enter the game code to join the game
 * Once all players have joined the game, the Admin user can press "Start Game" and will need to enter the initial wallet for the users
