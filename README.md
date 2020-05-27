@@ -1,11 +1,11 @@
-# POKER FACILITATOR
+# Poker Facilitator Messenger Bot
 
 Have you ever wanted to play poker but couldn't because you didn't have any chips or anything to use to bet? Then the 
 Poker Faciliator bot is perfect for you! This easy to use messenger bot will totally replace the need for chips, as it can track
-everything related to chips as long as each player has messenger. 
+everything related to chips as long as each player has access to Messenger. 
 
 ## Screenshots:
-![Slide1](https://user-images.githubusercontent.com/43117838/81712479-9febbb00-9442-11ea-999f-6abe5d2c6c21.JPG)
+![Poker1](https://user-images.githubusercontent.com/43117838/82989505-cf650080-9fc8-11ea-904f-80fa7429dbc2.jpg)
 
 ## How to Play:
 ### Set-up Game: 
@@ -18,6 +18,9 @@ everything related to chips as long as each player has messenger.
 * For blinds please use the raise button for those players to start off by raising
 * Admin user can press "Admin Control" and "Next Round" for the next round which resets the table bet 
 * Once the entire hand is over, the admin can go to "Admin Control" and "Pick Winner" will list all users for the admin to chose the winner
+
+![Poker2](https://user-images.githubusercontent.com/43117838/82989548-de4bb300-9fc8-11ea-9ae9-d17bbd8928b7.jpg)
+
 ### Ending the Game: 
 * Non-admin users can type in "leave" at any point in the game to leave the current game
 * Admin can go to "Admin Control" > "Help" > "End Game" to end the game and make all users leave the current game 
@@ -26,9 +29,8 @@ everything related to chips as long as each player has messenger.
 #### Additional Features:
 * Admin users can override any players wallet through the "Admin Control" > "Help" > "Override" button 
 * All players are notified off the previous move made by their opponents 
+* Admin is notified when other players leave the game 
 
 
-
-This bot is not meant to be used for any sort of real gambling or having any real money involved. The sole purpose of this is to replace
-poker chips. 
+This bot is not meant to be used for any sort of real gambling or having any real money involved. The sole purpose of this is to allow people to enjoy the fun of poker without the need for poker chips. 
 
