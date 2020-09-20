@@ -34,3 +34,7 @@ everything related to chips as long as each player has access to Messenger.
 
 This bot is not meant to be used for any sort of real gambling or having any real money involved. The sole purpose of this is to allow people to enjoy the fun of poker without the need for poker chips. 
 
+##### Requirements:
+* node v12.16.1
+* npm v6.14.5
+
